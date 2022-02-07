@@ -15,10 +15,16 @@ import { ComputedRefImpl } from './computed'
 // Conceptually, it's easier to think of a dependency as a Dep class
 // which maintains a Set of subscribers, but we simply store them as
 // raw Sets to reduce memory overhead.
+// 存储 {target -> key -> dep} 连接的主 WeakMap。从概念上讲，更容易将依赖项视为维护一组订阅者的 Dep 类，但我们只是将它们存储为原始 Sets 以减少内存开销
+
+// 这个map的key源对象的key,value为dep
+// dep为一个set,存储各种副作用
 type KeyToDepMap = Map<any, Dep>
+// key为源对象，value为一个KeyToDepMap，
 const targetMap = new WeakMap<any, KeyToDepMap>()
 
 // The number of effects currently being tracked recursively.
+// 当前正在递归跟踪的效果数。
 let effectTrackDepth = 0
 
 export let trackOpBit = 1
@@ -27,6 +33,7 @@ export let trackOpBit = 1
  * The bitwise track markers support at most 30 levels of recursion.
  * This value is chosen to enable modern JS engines to use a SMI on all platforms.
  * When recursion depth is greater, fall back to using a full cleanup.
+ * 按位跟踪标记最多支持 30 级递归。 选择此值是为了使现代 JS 引擎能够在所有平台上使用 SMI。 当递归深度更大时，回退到使用完全清理
  */
 const maxMarkerBits = 30
 
@@ -214,6 +221,7 @@ export function track(target: object, type: TrackOpTypes, key: unknown) {
       ? { effect: activeEffect, target, type, key }
       : undefined
 
+    // 收集副作用
     trackEffects(dep, eventInfo)
   }
 }
@@ -225,7 +233,7 @@ export function trackEffects(
   let shouldTrack = false
   if (effectTrackDepth <= maxMarkerBits) {
     if (!newTracked(dep)) {
-      dep.n |= trackOpBit // set newly tracked
+      dep.n |= trackOpBit // 设置新的跟踪
       shouldTrack = !wasTracked(dep)
     }
   } else {
@@ -235,6 +243,7 @@ export function trackEffects(
 
   if (shouldTrack) {
     dep.add(activeEffect!)
+    // dep 与 effect相互缓存
     activeEffect!.deps.push(dep)
     if (__DEV__ && activeEffect!.onTrack) {
       activeEffect!.onTrack(

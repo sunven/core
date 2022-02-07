@@ -115,6 +115,7 @@ function createGetter(isReadonly = false, shallow = false) {
     }
 
     if (!isReadonly) {
+      // 收集依赖
       track(target, TrackOpTypes.GET, key)
     }
 
@@ -142,6 +143,11 @@ function createGetter(isReadonly = false, shallow = false) {
 const set = /*#__PURE__*/ createSetter()
 const shallowSet = /*#__PURE__*/ createSetter(true)
 
+/**
+ * proxy中的get
+ * @param shallow 
+ * @returns 
+ */
 function createSetter(shallow = false) {
   return function set(
     target: object,
@@ -172,7 +178,9 @@ function createSetter(shallow = false) {
         : hasOwn(target, key)
     const result = Reflect.set(target, key, value, receiver)
     // don't trigger if target is something up in the prototype chain of original
+    // 如果目标是原型链中的某个东西，不要触发
     if (target === toRaw(receiver)) {
+      // 触发
       if (!hadKey) {
         trigger(target, TriggerOpTypes.ADD, key, value)
       } else if (hasChanged(value, oldValue)) {

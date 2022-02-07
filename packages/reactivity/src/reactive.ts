@@ -29,6 +29,9 @@ export interface Target {
   [ReactiveFlags.RAW]?: any
 }
 
+/**
+ * 缓存已代理的对象，key为源对象，value为代理后的对象
+ */
 export const reactiveMap = new WeakMap<Target, any>()
 export const shallowReactiveMap = new WeakMap<Target, any>()
 export const readonlyMap = new WeakMap<Target, any>()
@@ -56,6 +59,7 @@ function targetTypeMap(rawType: string) {
 }
 
 function getTargetType(value: Target) {
+  // seal,freeze不可扩展
   return value[ReactiveFlags.SKIP] || !Object.isExtensible(value)
     ? TargetType.INVALID
     : targetTypeMap(toRawType(value))
@@ -89,6 +93,7 @@ export type UnwrapNestedRefs<T> = T extends Ref ? T : UnwrapRefSimple<T>
 export function reactive<T extends object>(target: T): UnwrapNestedRefs<T>
 export function reactive(target: object) {
   // if trying to observe a readonly proxy, return the readonly version.
+  // 如果尝试观察只读代理，则返回只读版本
   if (isReadonly(target)) {
     return target
   }
@@ -109,6 +114,7 @@ export type ShallowReactive<T> = T & { [ShallowReactiveMarker]?: true }
  * Return a shallowly-reactive copy of the original object, where only the root
  * level properties are reactive. It also does not auto-unwrap refs (even at the
  * root level).
+ * 返回原始对象的浅反应副本，其中只有根级别的属性是反应的。 它也不会自动解包引用（即使在根级别）
  */
 export function shallowReactive<T extends object>(
   target: T
@@ -149,6 +155,7 @@ export type DeepReadonly<T> = T extends Builtin
 /**
  * Creates a readonly copy of the original object. Note the returned copy is not
  * made reactive, but `readonly` can be called on an already reactive object.
+ * 创建原始对象的只读副本。 请注意，返回的副本不是反应式的，但可以在已经反应式的对象上调用 `readonly`
  */
 export function readonly<T extends object>(
   target: T
@@ -167,6 +174,7 @@ export function readonly<T extends object>(
  * properties are readonly, and does NOT unwrap refs nor recursively convert
  * returned properties.
  * This is used for creating the props proxy object for stateful components.
+ * 返回原始对象的响应式副本，其中只有根级别的属性是只读的，并且不会解开引用，也不会递归转换返回的属性。 这用于为有状态组件创建 props 代理对象
  */
 export function shallowReadonly<T extends object>(target: T): Readonly<T> {
   return createReactiveObject(
@@ -178,6 +186,15 @@ export function shallowReadonly<T extends object>(target: T): Readonly<T> {
   )
 }
 
+/**
+ * 创建响应式对象
+ * @param target 
+ * @param isReadonly 
+ * @param baseHandlers 
+ * @param collectionHandlers 
+ * @param proxyMap 
+ * @returns 
+ */
 function createReactiveObject(
   target: Target,
   isReadonly: boolean,
@@ -209,6 +226,7 @@ function createReactiveObject(
   if (targetType === TargetType.INVALID) {
     return target
   }
+  // collectionHandlers:map,set,weakmap,weakset
   const proxy = new Proxy(
     target,
     targetType === TargetType.COLLECTION ? collectionHandlers : baseHandlers

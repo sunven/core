@@ -153,7 +153,7 @@ export type NormalizedPropsOptions = [NormalizedProps, string[]] | []
 export function initProps(
   instance: ComponentInternalInstance,
   rawProps: Data | null,
-  isStateful: number, // result of bitwise flag comparison
+  isStateful: number, // result of bitwise flag comparison 按位标志比较的结果
   isSSR = false
 ) {
   const props: Data = {}
@@ -165,6 +165,7 @@ export function initProps(
   setFullProps(instance, rawProps, props, attrs)
 
   // ensure all declared prop keys are present
+  // 确保所有声明的道具键都存在
   for (const key in instance.propsOptions[0]) {
     if (!(key in props)) {
       props[key] = undefined
@@ -337,6 +338,7 @@ function setFullProps(
   if (rawProps) {
     for (let key in rawProps) {
       // key, ref are reserved and never passed down
+      // key, ref 被保留并且从不传递
       if (isReservedProp(key)) {
         continue
       }

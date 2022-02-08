@@ -31,14 +31,20 @@ declare module '@vue/reactivity' {
   }
 }
 
+// 渲染器选项
 const rendererOptions = extend({ patchProp }, nodeOps)
 
 // lazy create the renderer - this makes core renderer logic tree-shakable
 // in case the user only imports reactivity utilities from Vue.
+// 懒惰地创建渲染器 - 这使得核心渲染器逻辑可摇树，以防用户仅从 Vue 导入反应性实用程序
 let renderer: Renderer<Element | ShadowRoot> | HydrationRenderer
 
 let enabledHydration = false
 
+/**
+ * 创建渲染器
+ * @returns
+ */
 function ensureRenderer() {
   return (
     renderer ||
@@ -63,6 +69,9 @@ export const hydrate = ((...args) => {
   ensureHydrationRenderer().hydrate(...args)
 }) as RootHydrateFunction
 
+/**
+ * createApp
+ */
 export const createApp = ((...args) => {
   const app = ensureRenderer().createApp(...args)
 
@@ -71,7 +80,13 @@ export const createApp = ((...args) => {
     injectCompilerOptionsCheck(app)
   }
 
+  // 保存原来的mount
   const { mount } = app
+  /**
+   * 重写mount
+   * @param containerOrSelector #app
+   * @returns
+   */
   app.mount = (containerOrSelector: Element | ShadowRoot | string): any => {
     const container = normalizeContainer(containerOrSelector)
     if (!container) return
@@ -82,6 +97,8 @@ export const createApp = ((...args) => {
       // Reason: potential execution of JS expressions in in-DOM template.
       // The user must make sure the in-DOM template is trusted. If it's
       // rendered by the server, the template should not contain any user data.
+
+      // 把页面上的template放到组件的template上
       component.template = container.innerHTML
       // 2.x compat check
       if (__COMPAT__ && __DEV__) {

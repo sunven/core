@@ -174,6 +174,12 @@ export type CreateAppFunction<HostElement> = (
 
 let uid = 0
 
+/**
+ * 创建调用createApp后得到的api,mount函数等
+ * @param render
+ * @param hydrate
+ * @returns
+ */
 export function createAppAPI<HostElement>(
   render: RootRenderFunction,
   hydrate?: RootHydrateFunction
@@ -184,7 +190,9 @@ export function createAppAPI<HostElement>(
       rootProps = null
     }
 
+    // 创建上下文
     const context = createAppContext()
+    // 缓存注册的插件
     const installedPlugins = new Set()
 
     let isMounted = false
@@ -210,7 +218,12 @@ export function createAppAPI<HostElement>(
           )
         }
       },
-
+      /**
+       * 用于安装插件
+       * @param plugin
+       * @param options
+       * @returns
+       */
       use(plugin: Plugin, ...options: any[]) {
         if (installedPlugins.has(plugin)) {
           __DEV__ && warn(`Plugin has already been applied to target app.`)
@@ -280,12 +293,15 @@ export function createAppAPI<HostElement>(
         isSVG?: boolean
       ): any {
         if (!isMounted) {
+          // 创建vnode，得到根vnode
+          // 此时得到的vnode.type就是rootComponent
           const vnode = createVNode(
             rootComponent as ConcreteComponent,
             rootProps
           )
           // store app context on the root VNode.
           // this will be set on the root instance on initial mount.
+          // 在根 VNode 上存储应用上下文。 这将在初始挂载时在根实例上设置
           vnode.appContext = context
 
           // HMR root reload
@@ -298,6 +314,7 @@ export function createAppAPI<HostElement>(
           if (isHydrate && hydrate) {
             hydrate(vnode as VNode<Node, Element>, rootContainer as any)
           } else {
+            // 渲染
             render(vnode, rootContainer, isSVG)
           }
           isMounted = true

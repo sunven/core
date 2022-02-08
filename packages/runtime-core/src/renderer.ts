@@ -162,8 +162,9 @@ export interface RendererInternals<
 // These functions are created inside a closure and therefore their types cannot
 // be directly exported. In order to avoid maintaining function signatures in
 // two places, we declare them once here and use them inside the closure.
+// 这些函数是在闭包内创建的，因此它们的类型不能直接导出。 为了避免在两个地方维护函数签名，我们在这里声明一次，并在闭包内部使用它们
 type PatchFn = (
-  n1: VNode | null, // null means this is a mount
+  n1: VNode | null, // null means this is a mount null 表示这是一个挂载
   n2: VNode,
   container: RendererElement,
   anchor?: RendererNode | null,
@@ -280,6 +281,8 @@ export const queuePostRenderEffect = __FEATURE_SUSPENSE__
  * host environment. For example, for runtime-dom, HostNode would be the DOM
  * `Node` interface and HostElement would be the DOM `Element` interface.
  *
+ * createRenderer 函数接受两个通用参数：HostNode 和 HostElement，对应于宿主环境中的 Node 和 Element 类型。 例如，对于 runtime-dom，HostNode 将是 DOM `Node` 接口，而 HostElement 将是 DOM `Element` 接口。
+ *
  * Custom renderers can pass in the platform specific types like this:
  *
  * ``` js
@@ -299,6 +302,7 @@ export function createRenderer<
 // Separate API for creating hydration-enabled renderer.
 // Hydration logic is only used when calling this function, making it
 // tree-shakable.
+// 用于创建支持水合的渲染器的单独 API。 水化逻辑仅在调用此函数时使用，使其可摇树
 export function createHydrationRenderer(
   options: RendererOptions<Node, Element>
 ) {
@@ -318,6 +322,7 @@ function baseCreateRenderer(
 ): HydrationRenderer
 
 // implementation
+// 实现
 function baseCreateRenderer(
   options: RendererOptions,
   createHydrationFns?: typeof createHydrationFunctions
@@ -351,6 +356,7 @@ function baseCreateRenderer(
 
   // Note: functions inside this closure should use `const xxx = () => {}`
   // style in order to prevent being inlined by minifiers.
+  // 注意：此闭包内的函数应使用 `const xxx = () => {}` 样式，以防止被缩小器内联
   const patch: PatchFn = (
     n1,
     n2,
@@ -1146,6 +1152,18 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 处理组件
+   * @param n1
+   * @param n2
+   * @param container
+   * @param anchor
+   * @param parentComponent
+   * @param parentSuspense
+   * @param isSVG
+   * @param slotScopeIds
+   * @param optimized
+   */
   const processComponent = (
     n1: VNode | null,
     n2: VNode,
@@ -1168,6 +1186,7 @@ function baseCreateRenderer(
           optimized
         )
       } else {
+        // 挂载
         mountComponent(
           n2,
           container,
@@ -1179,6 +1198,7 @@ function baseCreateRenderer(
         )
       }
     } else {
+      // 更新
       updateComponent(n1, n2, optimized)
     }
   }
@@ -1210,6 +1230,7 @@ function baseCreateRenderer(
 
     if (__DEV__) {
       pushWarningContext(initialVNode)
+      // 开始测量（性能）
       startMeasure(instance, `mount`)
     }
 
@@ -1336,6 +1357,7 @@ function baseCreateRenderer(
             if (__DEV__) {
               startMeasure(instance, `render`)
             }
+            // 执行render得到vnode
             instance.subTree = renderComponentRoot(instance)
             if (__DEV__) {
               endMeasure(instance, `render`)
@@ -1370,6 +1392,7 @@ function baseCreateRenderer(
           if (__DEV__) {
             startMeasure(instance, `render`)
           }
+          // 执行render得到vnode
           const subTree = (instance.subTree = renderComponentRoot(instance))
           if (__DEV__) {
             endMeasure(instance, `render`)
@@ -1377,6 +1400,8 @@ function baseCreateRenderer(
           if (__DEV__) {
             startMeasure(instance, `patch`)
           }
+          // 用得到的vnode patch
+          // 页面显示
           patch(
             null,
             subTree,
@@ -1542,16 +1567,19 @@ function baseCreateRenderer(
     }
 
     // create reactive effect for rendering
+    // 为渲染创建反应效果
     const effect = (instance.effect = new ReactiveEffect(
       componentUpdateFn,
       () => queueJob(instance.update),
-      instance.scope // track it in component's effect scope
+      instance.scope // track it in component's effect scope 在组件的效果范围内跟踪它
     ))
 
+    // effect上的run就是上面声明的componentUpdateFn
     const update = (instance.update = effect.run.bind(effect) as SchedulerJob)
     update.id = instance.uid
     // allowRecurse
     // #1801, #2043 component render effects should allow recursive updates
+    // 组件渲染效果应该允许递归更新
     toggleRecurse(instance, true)
 
     if (__DEV__) {

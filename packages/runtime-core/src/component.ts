@@ -446,6 +446,13 @@ const emptyAppContext = createAppContext()
 
 let uid = 0
 
+/**
+ * 创建组件实例
+ * @param vnode
+ * @param parent
+ * @param suspense
+ * @returns
+ */
 export function createComponentInstance(
   vnode: VNode,
   parent: ComponentInternalInstance | null,
@@ -579,6 +586,12 @@ export function isStatefulComponent(instance: ComponentInternalInstance) {
 
 export let isInSSRComponentSetup = false
 
+/**
+ * 设置组件
+ * @param instance
+ * @param isSSR
+ * @returns
+ */
 export function setupComponent(
   instance: ComponentInternalInstance,
   isSSR = false
@@ -586,17 +599,26 @@ export function setupComponent(
   isInSSRComponentSetup = isSSR
 
   const { props, children } = instance.vnode
+  // 是否是一个有状体组件
   const isStateful = isStatefulComponent(instance)
+  // 初始化props
   initProps(instance, props, isStateful, isSSR)
+  // 初始化插槽
   initSlots(instance, children)
 
+  // 设置有状态组件
   const setupResult = isStateful
     ? setupStatefulComponent(instance, isSSR)
     : undefined
   isInSSRComponentSetup = false
   return setupResult
 }
-
+/**
+ * 设置有状态组件
+ * @param instance
+ * @param isSSR
+ * @returns
+ */
 function setupStatefulComponent(
   instance: ComponentInternalInstance,
   isSSR: boolean
@@ -628,9 +650,11 @@ function setupStatefulComponent(
     }
   }
   // 0. create render proxy property access cache
+  // 0. 创建渲染代理属性访问缓存
   instance.accessCache = Object.create(null)
   // 1. create public instance / render proxy
   // also mark it raw so it's never observed
+  // 1. 创建公共实例/渲染代理也将其标记为原始，因此从未观察到
   instance.proxy = markRaw(new Proxy(instance.ctx, PublicInstanceProxyHandlers))
   if (__DEV__) {
     exposePropsOnRenderContext(instance)
@@ -678,6 +702,7 @@ function setupStatefulComponent(
       handleSetupResult(instance, setupResult, isSSR)
     }
   } else {
+    // 完成组件设置
     finishComponentSetup(instance, isSSR)
   }
 }
@@ -733,6 +758,7 @@ let installWithProxy: (i: ComponentInternalInstance) => void
 /**
  * For runtime-dom to register the compiler.
  * Note the exported method uses any to avoid d.ts relying on the compiler types.
+ * 为 runtime-dom 注册编译器
  */
 export function registerRuntimeCompiler(_compile: any) {
   compile = _compile
@@ -796,6 +822,7 @@ export function finishComponentSetup(
             extend(finalCompilerOptions.compatConfig, Component.compatConfig)
           }
         }
+        // 得到render函数
         Component.render = compile(template, finalCompilerOptions)
         if (__DEV__) {
           endMeasure(instance, `compile`)
@@ -808,6 +835,7 @@ export function finishComponentSetup(
     // for runtime-compiled render functions using `with` blocks, the render
     // proxy used needs a different `has` handler which is more performant and
     // also only allows a whitelist of globals to fallthrough.
+    // 对于使用 `with` 块的运行时编译的渲染函数，使用的渲染代理需要一个不同的 `has` 处理程序，它具有更高的性能，并且只允许全局白名单通过
     if (installWithProxy) {
       installWithProxy(instance)
     }

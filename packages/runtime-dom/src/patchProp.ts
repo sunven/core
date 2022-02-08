@@ -10,6 +10,18 @@ const nativeOnRE = /^on[a-z]/
 
 type DOMRendererOptions = RendererOptions<Node, Element>
 
+/**
+ * patch操作
+ * @param el
+ * @param key
+ * @param prevValue
+ * @param nextValue
+ * @param isSVG
+ * @param prevChildren
+ * @param parentComponent
+ * @param parentSuspense
+ * @param unmountChildren
+ */
 export const patchProp: DOMRendererOptions['patchProp'] = (
   el,
   key,
@@ -51,6 +63,7 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
     // :true-value & :false-value
     // store value as dom properties since non-string values will be
     // stringified.
+    // <input v-model type="checkbox"> 的特殊情况 :true-value & :false-value 将值存储为 dom 属性，因为非字符串值将被字符串化
     if (key === 'true-value') {
       ;(el as any)._trueValue = nextValue
     } else if (key === 'false-value') {

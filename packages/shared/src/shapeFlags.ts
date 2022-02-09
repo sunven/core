@@ -1,5 +1,6 @@
 export const enum ShapeFlags {
   ELEMENT = 1,
+  // “<<”运算符执行左移位运算
   FUNCTIONAL_COMPONENT = 1 << 1,
   STATEFUL_COMPONENT = 1 << 2,
   TEXT_CHILDREN = 1 << 3,

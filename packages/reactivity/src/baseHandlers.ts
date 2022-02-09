@@ -82,13 +82,18 @@ function createArrayInstrumentations() {
 function createGetter(isReadonly = false, shallow = false) {
   return function get(target: Target, key: string | symbol, receiver: object) {
     if (key === ReactiveFlags.IS_REACTIVE) {
+      // 判断是否是响应式，不是只读的就是响应式
       return !isReadonly
     } else if (key === ReactiveFlags.IS_READONLY) {
+      // 是否是只读的
       return isReadonly
     } else if (key === ReactiveFlags.IS_SHALLOW) {
+      // 是否是浅的（没有递归的去代理，只代理根属性）
       return shallow
     } else if (
+      // 返回源对象，toRaw()方法
       key === ReactiveFlags.RAW &&
+      // 不同类型的响应式对象,存储在不同地方
       receiver ===
         (isReadonly
           ? shallow
@@ -121,6 +126,7 @@ function createGetter(isReadonly = false, shallow = false) {
     }
 
     if (shallow) {
+      // 浅层次的直接返回,不会递归做响应式,例如props
       return res
     }
 
@@ -134,6 +140,7 @@ function createGetter(isReadonly = false, shallow = false) {
       // Convert returned value into a proxy as well. we do the isObject check
       // here to avoid invalid value warning. Also need to lazy access readonly
       // and reactive here to avoid circular dependency.
+      // 也将返回值转换为代理。 我们在这里进行 isObject 检查以避免无效值警告。 这里还需要惰性访问 readonly 和 reactive 避免循环依赖
       return isReadonly ? readonly(res) : reactive(res)
     }
 

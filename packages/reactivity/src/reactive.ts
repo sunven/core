@@ -175,6 +175,7 @@ export function readonly<T extends object>(
  * returned properties.
  * This is used for creating the props proxy object for stateful components.
  * 返回原始对象的响应式副本，其中只有根级别的属性是只读的，并且不会解开引用，也不会递归转换返回的属性。 这用于为有状态组件创建 props 代理对象
+ * 自身属性只读，深度的不会，没有响应式不会收集依赖
  */
 export function shallowReadonly<T extends object>(target: T): Readonly<T> {
   return createReactiveObject(
@@ -188,10 +189,10 @@ export function shallowReadonly<T extends object>(target: T): Readonly<T> {
 
 /**
  * 创建响应式对象
- * @param target
- * @param isReadonly
- * @param baseHandlers
- * @param collectionHandlers
+ * @param target 源对象
+ * @param isReadonly 是否只读
+ * @param baseHandlers proxy的handle
+ * @param collectionHandlers 集合类型的handle
  * @param proxyMap
  * @returns
  */
@@ -238,6 +239,7 @@ function createReactiveObject(
 
 export function isReactive(value: unknown): boolean {
   if (isReadonly(value)) {
+    // 如果该代理是 readonly 创建的，但包裹了由 reactive 创建的另一个代理，它也会返回 true
     return isReactive((value as Target)[ReactiveFlags.RAW])
   }
   return !!(value && (value as Target)[ReactiveFlags.IS_REACTIVE])
@@ -266,6 +268,7 @@ export function markRaw<T extends object>(value: T): T {
 }
 
 export const toReactive = <T extends unknown>(value: T): T =>
+  // 对象调用reactive
   isObject(value) ? reactive(value) : value
 
 export const toReadonly = <T extends unknown>(value: T): T =>

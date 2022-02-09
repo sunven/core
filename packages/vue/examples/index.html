@@ -10,25 +10,28 @@
   <body>
     <div id="app">
       <p>{{obj}}</p>
+      <v-div :title="obj.title"></v-div>
     </div>
     <script>
-      const { createApp, reactive, watchEffect } = Vue
+      const { createApp, reactive, watchEffect, toRaw } = Vue
       const app = createApp({
         setup() {
-          const obj = reactive([1, 2, 3, 4])
+          const foo = { count: 1, title: 'v-div111' }
+          const obj = reactive(foo)
+          const foo1 = toRaw(obj)
 
-          // watchEffect(() => {
-          //   console.log('watchEffect', obj.count)
-          // })
-
-          setTimeout(() => {
-            // obj.count += 1
-            obj.push(5)
-          }, 2000)
+          watchEffect(() => {
+            console.log('watchEffect', obj.count)
+          })
 
           return { obj }
         }
-      }).mount('#app')
+      })
+      app.component('v-div', {
+        props: ['title'],
+        template: `<div>{{title}}</div>`
+      })
+      app.mount('#app')
     </script>
   </body>
 </html>

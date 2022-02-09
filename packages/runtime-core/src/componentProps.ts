@@ -179,6 +179,7 @@ export function initProps(
 
   if (isStateful) {
     // stateful
+    // 将props创建为响应式
     instance.props = isSSR ? props : shallowReactive(props)
   } else {
     if (!instance.type.props) {

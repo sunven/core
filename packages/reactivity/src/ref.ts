@@ -106,6 +106,7 @@ class RefImpl<T> {
   }
 
   get value() {
+    // 收集依赖
     trackRefValue(this)
     return this._value
   }

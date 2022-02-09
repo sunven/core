@@ -581,6 +581,7 @@ export function validateComponentName(name: string, config: AppConfig) {
 }
 
 export function isStatefulComponent(instance: ComponentInternalInstance) {
+  // 按位与
   return instance.vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT
 }
 

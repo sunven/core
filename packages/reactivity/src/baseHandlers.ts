@@ -105,6 +105,7 @@ function createGetter(isReadonly = false, shallow = false) {
     const targetIsArray = isArray(target)
 
     if (!isReadonly && targetIsArray && hasOwn(arrayInstrumentations, key)) {
+      // 调用了数组的push等方法
       return Reflect.get(arrayInstrumentations, key, receiver)
     }
 
@@ -145,8 +146,12 @@ const shallowSet = /*#__PURE__*/ createSetter(true)
 
 /**
  * proxy中的get
- * @param shallow 
- * @returns 
+ * 例如对一个长度为2的数组做push操作 [1,2],push(3)
+ * 会进get两次，第一次将索引为2的位置设置为3
+ * 第二次将length改为3,
+ * 第二次不会触发副作用因为新旧值不同
+ * @param shallow
+ * @returns
  */
 function createSetter(shallow = false) {
   return function set(
@@ -182,8 +187,10 @@ function createSetter(shallow = false) {
     if (target === toRaw(receiver)) {
       // 触发
       if (!hadKey) {
+        // 新增属性触发
         trigger(target, TriggerOpTypes.ADD, key, value)
       } else if (hasChanged(value, oldValue)) {
+        // 新值旧值不一样才触发
         trigger(target, TriggerOpTypes.SET, key, value, oldValue)
       }
     }

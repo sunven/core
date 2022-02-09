@@ -9,20 +9,21 @@
   </head>
   <body>
     <div id="app">
-      <p>{{obj.count}}</p>
+      <p>{{obj}}</p>
     </div>
     <script>
       const { createApp, reactive, watchEffect } = Vue
       const app = createApp({
         setup() {
-          const obj = reactive({ count: 1 })
+          const obj = reactive([1, 2, 3, 4])
 
-          watchEffect(() => {
-            console.log('watchEffect', obj.count)
-          })
+          // watchEffect(() => {
+          //   console.log('watchEffect', obj.count)
+          // })
 
           setTimeout(() => {
-            obj.count += 1
+            // obj.count += 1
+            obj.push(5)
           }, 2000)
 
           return { obj }

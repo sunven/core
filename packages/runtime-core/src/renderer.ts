@@ -1789,7 +1789,10 @@ function baseCreateRenderer(
    * @param slotScopeIds
    * @param optimized
    */
-  const patchKeyedChildren = (
+  const 
+  
+  
+  patchKeyedChildren = (
     c1: VNode[],
     c2: VNodeArrayChildren,
     container: RendererElement,
@@ -1955,12 +1958,14 @@ function baseCreateRenderer(
       let moved = false
       // used to track whether any node has moved
       // 用于跟踪是否有任何节点已移动
+      // 在旧vnode中找到新vnode索引的最大值（类似react lastIndex）
       let maxNewIndexSoFar = 0
       // works as Map<newIndex, oldIndex> 用作地图<newIndex，oldIndex>
       // Note that oldIndex is offset by +1 请注意，oldIndex被+1抵消
       // and oldIndex = 0 is a special value indicating the new node has oldIndex=0是一个特殊值，指示新节点
       // no corresponding old node. 没有相应的旧节点。
       // used for determining longest stable subsequence 用于确定【最长稳定子序列】
+      // 用来存储新 vnode 中的未遍历的节点在旧 vnode 中的位置，后面将会使用它计算出一个最长递增子序列，并用于 DOM 移动
       const newIndexToOldIndexMap = new Array(toBePatched)
       // 数组每一项都置为0
       for (i = 0; i < toBePatched; i++) newIndexToOldIndexMap[i] = 0
@@ -1971,6 +1976,7 @@ function baseCreateRenderer(
         if (patched >= toBePatched) {
           // all new children have been patched so this can only be a removal
           // 所有新来的孩子都打了补丁，所以这只能是移除
+          // 已经patch的个数>=需要patch的个数，即新的vnode都patch了，那么剩下的旧vnode需要umount
           unmount(prevChild, parentComponent, parentSuspense, true)
           continue
         }
@@ -1997,10 +2003,12 @@ function baseCreateRenderer(
           unmount(prevChild, parentComponent, parentSuspense, true)
         } else {
           // 找到了
-          newIndexToOldIndexMap[newIndex - s2] = i + 1
+          newIndexToOldIndexMap[newIndex - s2] = i + 1 // 旧节点索引 +1
           if (newIndex >= maxNewIndexSoFar) {
+            // maxNewIndexSoFar存找到过的最大的索引
             maxNewIndexSoFar = newIndex
           } else {
+            // 新找到的比之前找到的要小，表示有需要移动的节点
             moved = true
           }
           patch(
@@ -2017,20 +2025,29 @@ function baseCreateRenderer(
           patched++
         }
       }
+      // 上面循环结束
+      // newIndexToOldIndexMap中任然为0的，表示有新node，没有旧node
 
       // 5.3 move and mount
       // generate longest stable subsequence only when nodes have moved
+      // 仅当节点已移动时生成最长稳定子序列
+      // 最长稳定子序列中的值表示这些节点在新旧vnode中，先后顺序是一样的，即不需要移动
+      // getSequence返回的是在newIndexToOldIndexMap中的索引，不是值
       const increasingNewIndexSequence = moved
         ? getSequence(newIndexToOldIndexMap)
         : EMPTY_ARR
       j = increasingNewIndexSequence.length - 1
       // looping backwards so that we can use last patched node as anchor
+      // 向后循环，这样我们就可以使用最后一个补丁节点作为锚
+      // 从后向前遍历新 children 中的剩余未处理节点
       for (i = toBePatched - 1; i >= 0; i--) {
         const nextIndex = s2 + i
         const nextChild = c2[nextIndex] as VNode
+        // 锚点取未遍历的最后一个，要移动的，旧插着这个锚点之前
         const anchor =
           nextIndex + 1 < l2 ? (c2[nextIndex + 1] as VNode).el : parentAnchor
         if (newIndexToOldIndexMap[i] === 0) {
+          // newIndexToOldIndexMap[i] 为 0 的表示新节点在旧节点中没找到，即不存在
           // mount new
           patch(
             null,
@@ -2045,9 +2062,11 @@ function baseCreateRenderer(
           )
         } else if (moved) {
           // move if:
-          // There is no stable subsequence (e.g. a reverse)
-          // OR current node is not among the stable sequence
+          // There is no stable subsequence (e.g. a reverse) 没有稳定的子序列（例如反向）
+          // OR current node is not among the stable sequence 或者当前节点不在稳定序列中
           if (j < 0 || i !== increasingNewIndexSequence[j]) {
+            // j < 0 没有最长子序列
+            // i !== increasingNewIndexSequence[j] 不在最长子序列中，
             move(nextChild, container, anchor, MoveType.REORDER)
           } else {
             j--
@@ -2452,6 +2471,7 @@ export function traverseStaticChildren(n1: VNode, n2: VNode, shallow = false) {
 }
 
 // https://en.wikipedia.org/wiki/Longest_increasing_subsequence
+// 最长递增子序列
 function getSequence(arr: number[]): number[] {
   const p = arr.slice()
   const result = [0]

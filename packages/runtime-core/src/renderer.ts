@@ -1777,6 +1777,18 @@ function baseCreateRenderer(
   }
 
   // can be all-keyed or mixed
+  /**
+   *
+   * @param c1 old
+   * @param c2 new
+   * @param container
+   * @param parentAnchor
+   * @param parentComponent
+   * @param parentSuspense
+   * @param isSVG
+   * @param slotScopeIds
+   * @param optimized
+   */
   const patchKeyedChildren = (
     c1: VNode[],
     c2: VNodeArrayChildren,
@@ -1793,7 +1805,7 @@ function baseCreateRenderer(
     let e1 = c1.length - 1 // prev ending index
     let e2 = l2 - 1 // next ending index
 
-    // 1. sync from start
+    // 1. sync from start 头开始，相同的patch
     // (a b) c
     // (a b) d e
     while (i <= e1 && i <= e2) {
@@ -1802,6 +1814,7 @@ function baseCreateRenderer(
         ? cloneIfMounted(c2[i] as VNode)
         : normalizeVNode(c2[i]))
       if (isSameVNodeType(n1, n2)) {
+        // 相同的就patch
         patch(
           n1,
           n2,
@@ -1814,12 +1827,13 @@ function baseCreateRenderer(
           optimized
         )
       } else {
+        // 找到不相同的，就不在循环了
         break
       }
       i++
     }
 
-    // 2. sync from end
+    // 2. sync from end 尾开始，相同的patch
     // a (b c)
     // d e (b c)
     while (i <= e1 && i <= e2) {
@@ -1840,6 +1854,7 @@ function baseCreateRenderer(
           optimized
         )
       } else {
+        // 找到不相同的，就不在循环了
         break
       }
       e1--
@@ -1854,10 +1869,16 @@ function baseCreateRenderer(
     // c (a b)
     // i = 0, e1 = -1, e2 = 0
     if (i > e1) {
+      // 旧的遍历完了
+      // 新的vnode比旧的多
       if (i <= e2) {
+        // 新的没有遍历完
         const nextPos = e2 + 1
+        // 对于第一种情况，这个anchor会是null,c就会插在最后
+        // 对于第二种情况，这个anchor会是a,c就会插在a前
         const anchor = nextPos < l2 ? (c2[nextPos] as VNode).el : parentAnchor
         while (i <= e2) {
+          // 当新的 mount
           patch(
             null,
             (c2[i] = optimized
@@ -1884,7 +1905,10 @@ function baseCreateRenderer(
     // (b c)
     // i = 0, e1 = 0, e2 = -1
     else if (i > e2) {
+      // 新的遍历完了
+      // 旧的vnode比新的多
       while (i <= e1) {
+        // 旧的没有遍历完 unmount
         unmount(c1[i], parentComponent, parentSuspense, true)
         i++
       }
@@ -1894,11 +1918,16 @@ function baseCreateRenderer(
     // [i ... e1 + 1]: a b [c d e] f g
     // [i ... e2 + 1]: a b [e d c h] f g
     // i = 2, e1 = 4, e2 = 5
+    // 经过从头开始得到:i=2, e1=6, e2=7
+    // 经过从尾开始得到:i=2, e1=4, e2=5
+    // 旧的新的都没有遍历完，不会进第三步和第四步
     else {
+      // 从头和从尾开始比较都没有处理完，进这里
       const s1 = i // prev starting index
       const s2 = i // next starting index
 
       // 5.1 build key:index map for newChildren
+      // 建立一个key和index的映射关系（new vnode）
       const keyToNewIndexMap: Map<string | number | symbol, number> = new Map()
       for (i = s2; i <= e2; i++) {
         const nextChild = (c2[i] = optimized
@@ -1918,45 +1947,56 @@ function baseCreateRenderer(
 
       // 5.2 loop through old children left to be patched and try to patch
       // matching nodes & remove nodes that are no longer present
+      // 循环遍历需要修补的旧子节点，尝试修补匹配节点并移除不再存在的节点
       let j
       let patched = 0
+      // 新node中还未遍历的个数，即需要patch的个数
       const toBePatched = e2 - s2 + 1
       let moved = false
       // used to track whether any node has moved
+      // 用于跟踪是否有任何节点已移动
       let maxNewIndexSoFar = 0
-      // works as Map<newIndex, oldIndex>
-      // Note that oldIndex is offset by +1
-      // and oldIndex = 0 is a special value indicating the new node has
-      // no corresponding old node.
-      // used for determining longest stable subsequence
+      // works as Map<newIndex, oldIndex> 用作地图<newIndex，oldIndex>
+      // Note that oldIndex is offset by +1 请注意，oldIndex被+1抵消
+      // and oldIndex = 0 is a special value indicating the new node has oldIndex=0是一个特殊值，指示新节点
+      // no corresponding old node. 没有相应的旧节点。
+      // used for determining longest stable subsequence 用于确定【最长稳定子序列】
       const newIndexToOldIndexMap = new Array(toBePatched)
+      // 数组每一项都置为0
       for (i = 0; i < toBePatched; i++) newIndexToOldIndexMap[i] = 0
 
+      // 遍历旧node中未遍历的节点
       for (i = s1; i <= e1; i++) {
         const prevChild = c1[i]
         if (patched >= toBePatched) {
           // all new children have been patched so this can only be a removal
+          // 所有新来的孩子都打了补丁，所以这只能是移除
           unmount(prevChild, parentComponent, parentSuspense, true)
           continue
         }
         let newIndex
         if (prevChild.key != null) {
+          // 取出旧node在新node中的位置
           newIndex = keyToNewIndexMap.get(prevChild.key)
         } else {
           // key-less node, try to locate a key-less node of the same type
+          // 没有key的通过遍历一个个找
           for (j = s2; j <= e2; j++) {
             if (
               newIndexToOldIndexMap[j - s2] === 0 &&
               isSameVNodeType(prevChild, c2[j] as VNode)
             ) {
+              // 找到了不再循环，newIndex就是找到的索引
               newIndex = j
               break
             }
           }
         }
         if (newIndex === undefined) {
+          // 说明在新node里没有找到，即，旧的有，新的没有，那么就需要unmount
           unmount(prevChild, parentComponent, parentSuspense, true)
         } else {
+          // 找到了
           newIndexToOldIndexMap[newIndex - s2] = i + 1
           if (newIndex >= maxNewIndexSoFar) {
             maxNewIndexSoFar = newIndex

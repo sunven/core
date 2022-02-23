@@ -1789,10 +1789,7 @@ function baseCreateRenderer(
    * @param slotScopeIds
    * @param optimized
    */
-  const 
-  
-  
-  patchKeyedChildren = (
+  const patchKeyedChildren = (
     c1: VNode[],
     c2: VNodeArrayChildren,
     container: RendererElement,
